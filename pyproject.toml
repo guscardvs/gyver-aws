@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "gyver-aws"
+version = "0.1.0"
+description = ""
+authors = ["Gustavo Cardoso <self.gustavocorrea@gmail.com>"]
+readme = "README.md"
+packages = [{include = "gyver"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+gyver = "^2.0.8"
+requests = "^2.29.0"
+aiohttp = "^3.8.4"
+
+
+[tool.poetry.group.lint.dependencies]
+black = "^23.3.0"
+isort = "^5.12.0"
+autoflake = "^2.1.1"
+flake8 = "^6.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
