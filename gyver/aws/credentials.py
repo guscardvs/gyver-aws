@@ -10,4 +10,4 @@ class Credentials:
     access_key_id: str
     secret_access_key: str
     region: str
-    host: Optional[str] = None
+    endpoint_url: Optional[str] = None

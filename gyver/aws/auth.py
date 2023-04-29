@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 from base64 import b64encode
 from binascii import hexlify
 from datetime import date, datetime, timezone
@@ -43,8 +44,8 @@ class AwsAuthV4:
         )
         credential = self.make_credential(now)
         authorization_header = (
-            f"{constants.aws_algorithm} Credential={credential},"
-            f"SignedHeaders={signed_headers},"
+            f"{constants.aws_algorithm} Credential={credential}, "
+            f"SignedHeaders={signed_headers}, "
             f"Signature={signature}"
         )
         return headers | {
@@ -153,6 +154,10 @@ class AwsAuthV4:
 
     def make_credential(self, now: date):
         return "/".join((self.credentials.access_key_id, self._credential_scope(now)))
+
+
+def _aws4_reduce_signature(key: bytes, msg: str) -> bytes:
+    return hmac.new(key, msg.encode(), hashlib.sha256).digest()
 
 
 def _make_aws_date(now: date):

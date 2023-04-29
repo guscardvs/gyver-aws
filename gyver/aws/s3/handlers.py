@@ -1,14 +1,16 @@
 import base64
 import io
-from datetime import datetime, timedelta, timezone
-from http import HTTPStatus
 import mimetypes
 import re
+from datetime import datetime, timedelta, timezone
+from http import HTTPStatus
 from typing import Generator, NamedTuple, Optional, Sequence, cast
 from xml.etree import ElementTree as ET
 
 from gyver.attrs import define
-from gyver.utils import json
+from gyver.url import URL, Path
+from gyver.utils import json, lazyfield
+
 from gyver.aws.auth import AwsAuthV4, amz_dateformat
 from gyver.aws.constants import constants
 from gyver.aws.credentials import Credentials
@@ -23,10 +25,8 @@ from gyver.aws.http.response import ResponseProxy
 from gyver.aws.s3.config import S3ObjectConfig
 from gyver.aws.s3.models import FileInfo, UploadParams
 from gyver.aws.typedef import GET, HEAD, POST, PUT, Methods, Services
-from gyver.url import URL, Path
-from gyver.utils import lazyfield
 
-HOST_TEMPLATE = "https://{bucket}.s3.{region}.amazonaws.com"
+HOST_TEMPLATE = "{scheme}://{bucket}.s3.{region}.{host}"
 
 DAY = 86400
 WEEK = 604800
@@ -44,11 +44,22 @@ class S3Core:
 
     @lazyfield
     def base_uri(self) -> URL:
-        if self.credentials.host:
-            return URL(self.credentials.host)
+        if self.credentials.endpoint_url:
+            endpoint_url = URL(self.credentials.endpoint_url)
+            return URL(
+                HOST_TEMPLATE.format(
+                    scheme=endpoint_url.scheme,
+                    bucket=self.config.bucket_name,
+                    region=self.credentials.region,
+                    host=endpoint_url.netloc.encode(),
+                )
+            )
         return URL(
             HOST_TEMPLATE.format(
-                bucket=self.config.bucket_name, region=self.credentials.region
+                scheme="https",
+                bucket=self.config.bucket_name,
+                region=self.credentials.region,
+                host="amazonaws.com",
             )
         )
 
@@ -84,10 +95,13 @@ class Get:
         return Opts(self._download_handler, GET, url=url, raw=True)
 
     def _info_handler(self, proxy: ResponseProxy):
+        print(proxy.url, proxy.headers)
         if not proxy.ok:
             if proxy.status_code == HTTPStatus.NOT_FOUND:
                 raise NotFound(self.object_name, Services.S3)
             raise RequestFailed(proxy)
+        # formatting last_modifies from this format:
+        # Fri, 27 Jan 2023 10:21:12 GMT
         return FileInfo.parse_obj(
             {
                 "key": self.object_name,
@@ -225,7 +239,7 @@ class Upload:
         content_disp: bool = True,
         expires: Optional[datetime] = None,
     ) -> UploadParams:
-        key = "/".join(item.strip("/") for item in (path, filename))
+        key = "/".join(item.strip("/") for item in (path, filename) if item)
         policy_conditions = [
             {"bucket": self.core.config.bucket_name},
             {"key": key},
@@ -236,7 +250,7 @@ class Upload:
         if content_disp:
             policy_conditions.append(
                 content_disposition_fields := {
-                    "Content-Disposition": f'attachment; filename="{filename}"'
+                    "content-Disposition": f'attachment; filename="{filename}"'
                 }
             )
         timestamp = datetime.now(timezone.utc)
@@ -251,10 +265,10 @@ class Upload:
         return cast(
             UploadParams,
             {
-                "Key": key,
-                "Content-Type": self.mimetype,
+                "key": key,
+                "content-type": self.mimetype,
                 **content_disposition_fields,
-                "Policy": b64_policy,
+                "policy": b64_policy,
                 **self._signed_upload_fields(timestamp, b64_policy),
             },
         )
@@ -262,20 +276,20 @@ class Upload:
     def _upload_additional_conditions(self, timestamp: datetime):
         return [
             {
-                "X-Amz-Credential": self.core.aws_auth.make_credential(
+                "x-amz-credential": self.core.aws_auth.make_credential(
                     timestamp
                 )
             },
-            {"X-Amz-Algorithm": constants.aws_algorithm},
-            {"X-Amz-Date": amz_dateformat(timestamp)},
+            {"x-amz-algorithm": constants.aws_algorithm},
+            {"x-amz-date": amz_dateformat(timestamp)},
         ]
 
     def _signed_upload_fields(self, timestamp: datetime, policy: str):
         return {
-            "X-Amz-Algorithm": constants.aws_algorithm,
-            "X-Amz-Credential": self.core.aws_auth.make_credential(timestamp),
-            "X-Amz-Date": amz_dateformat(timestamp),
-            "X-Amz-Signature": self.core.aws_auth.aws4_sign_string(
+            "x-amz-algorithm": constants.aws_algorithm,
+            "x-amz-credential": self.core.aws_auth.make_credential(timestamp),
+            "x-amz-date": amz_dateformat(timestamp),
+            "x-amz-signature": self.core.aws_auth.aws4_sign_string(
                 policy, timestamp
             ),
         }
@@ -386,10 +400,13 @@ class List:
                 )
             if self._list_is_exhausted(xml_content):
                 token_holder.should_break = True
-            if (t := xml_content.find("NextContinuationToken")) is not None:
-                token_holder.continuation_token = t.text
             else:
-                raise UnexpectedResponse("unexpected response from S3")
+                if (
+                    t := xml_content.find("NextContinuationToken")
+                ) is not None:
+                    token_holder.continuation_token = t.text
+                else:
+                    raise UnexpectedResponse("unexpected response from S3")
             return results
 
         return _fetch_handler

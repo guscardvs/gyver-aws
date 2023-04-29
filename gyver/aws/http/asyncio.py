@@ -13,17 +13,17 @@ from typing import (
 )
 
 import aiohttp
-
 from gyver.attrs import define
+from gyver.context import AsyncAdapter
+from gyver.url import URL
+from gyver.utils import lazyfield
+
 from gyver.aws.auth import AwsAuthV4
 from gyver.aws.credentials import Credentials
 from gyver.aws.exc import InvalidParam
 from gyver.aws.http.opts import Opts
 from gyver.aws.http.response import ResponseProxy
 from gyver.aws.typedef import GET, HEAD, POST, PUT, Services
-from gyver.context import AsyncAdapter
-from gyver.url import URL
-from gyver.utils import lazyfield
 
 T = TypeVar("T")
 
@@ -42,7 +42,7 @@ class AsyncAuthHttpClient:
         )
 
     @lazyfield
-    def session(self):
+    def session(self) -> aiohttp.ClientSession:
         session = aiohttp.ClientSession()
         session.verify = self.verify_ssl
         return session
@@ -62,7 +62,7 @@ class AsyncAuthHttpClient:
 
     async def do(self, opts: Opts[T]) -> T:
         response: aiohttp.ClientResponse = await self._methods[opts.method](
-            **opts.kwargs()
+            self, **opts.kwargs()
         )
         return opts.response_handler(
             ResponseProxy(
@@ -157,8 +157,16 @@ class AsyncAuthHttpClient:
             headers = self.aws_auth.headers(
                 POST, url, headers=headers, data=data
             )
+        if files:
+            if isinstance(data, bytes):
+                raise InvalidParam(
+                    "data",
+                    data,
+                    "Requests using files must have mapping as files",
+                )
+            data = {**data, **files}
         return await self.session.post(
-            url.encode(), data=data, headers=headers, files=files
+            url.encode(), data=data, headers=headers
         )
 
     async def put(
@@ -178,6 +186,14 @@ class AsyncAuthHttpClient:
             headers = self.aws_auth.headers(
                 PUT, url, headers=headers, data=data
             )
+        if files:
+            if isinstance(data, bytes):
+                raise InvalidParam(
+                    "data",
+                    data,
+                    "Requests using files must have mapping as files",
+                )
+            data = {**data, **files}
         return await self.session.put(
             url.encode(), data=data, headers=headers, files=files
         )

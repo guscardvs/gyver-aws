@@ -1,32 +1,16 @@
-from typing import (
-    Any,
-    AsyncGenerator,
-    Coroutine,
-    Generator,
-    Generic,
-    Optional,
-    Sequence,
-    TypeVar,
-    overload,
-)
+from typing import (Any, AsyncGenerator, Coroutine, Generator, Generic,
+                    Optional, Sequence, TypeVar, overload)
 
 from gyver.attrs import define, info
+from gyver.url import URL
+from gyver.utils import lazyfield
+
 from gyver.aws.constants import constants
 from gyver.aws.http import AsyncAuthHttpClient, AuthHttpClient
 from gyver.aws.s3.config import S3ObjectConfig
-from gyver.aws.s3.handlers import (
-    Copy,
-    CopyParams,
-    DeleteMany,
-    Get,
-    List,
-    ObjectTuple,
-    S3Core,
-    Upload,
-)
+from gyver.aws.s3.handlers import (Copy, CopyParams, DeleteMany, Get, List,
+                                   ObjectTuple, S3Core, Upload)
 from gyver.aws.s3.models import FileInfo
-from gyver.url import URL
-from gyver.utils import lazyfield
 
 HttpInterface = TypeVar("HttpInterface", AsyncAuthHttpClient, AuthHttpClient)
 
@@ -49,9 +33,7 @@ class S3Executor(Generic[HttpInterface]):
     def core(self):
         return S3Core(self.http_interface.credentials, self.config)
 
-    def presigned_url(
-        self, object_name: str, version: Optional[str] = None
-    ) -> URL:
+    def presigned_url(self, object_name: str, version: Optional[str] = None) -> URL:
         """Generate a presigned URL for an S3 object.
 
         :param object_name: Name of the object to generate a presigned URL for.
@@ -268,9 +250,7 @@ class S3Executor(Generic[HttpInterface]):
         :returns: A sequence of None or a coroutine that yields a sequence of None.
         """
         copyobj = Copy(self.core, prevalidate)
-        return self.http_interface.exhaust_with_null(
-            copyobj.copy(source, target)
-        )
+        return self.http_interface.exhaust_with_null(copyobj.copy(source, target))
 
     @overload
     def copy_from(

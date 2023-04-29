@@ -1,28 +1,19 @@
 from http import HTTPStatus
-from typing import (
-    Any,
-    Generator,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import (Any, Generator, Literal, Mapping, Optional, TypeVar,
+                    Union, overload)
 
 import requests
-
 from gyver.attrs import define
+from gyver.context import Adapter
+from gyver.url import URL
+from gyver.utils import lazyfield
+
 from gyver.aws.auth import AwsAuthV4
 from gyver.aws.credentials import Credentials
 from gyver.aws.exc import InvalidParam
 from gyver.aws.http.opts import Opts
 from gyver.aws.http.response import ResponseProxy
 from gyver.aws.typedef import GET, HEAD, POST, PUT, Services
-from gyver.context import Adapter
-from gyver.url import URL
-from gyver.utils import lazyfield
 
 T = TypeVar("T")
 
@@ -36,9 +27,7 @@ class AuthHttpClient:
 
     @lazyfield
     def aws_auth(self):
-        return AwsAuthV4(
-            self.credentials, self.service, self.use_default_headers
-        )
+        return AwsAuthV4(self.credentials, self.service, self.use_default_headers)
 
     @lazyfield
     def session(self):
@@ -56,9 +45,7 @@ class AuthHttpClient:
         self.session.close()
 
     def do(self, opts: Opts[T]) -> T:
-        response: requests.Response = self._methods[opts.method](
-            **opts.kwargs()
-        )
+        response: requests.Response = self._methods[opts.method](self, **opts.kwargs())
         return opts.response_handler(
             ResponseProxy(
                 opts.url,
@@ -74,14 +61,10 @@ class AuthHttpClient:
         for item in opt_generator:
             yield self.do(item)
 
-    def exhaust(
-        self, opt_generator: Generator[Opts[T], None, None]
-    ) -> list[T]:
+    def exhaust(self, opt_generator: Generator[Opts[T], None, None]) -> list[T]:
         return [self.do(item) for item in opt_generator]
 
-    def exhaust_with_null(
-        self, opt_generator: Generator[Opts, None, None]
-    ) -> None:
+    def exhaust_with_null(self, opt_generator: Generator[Opts, None, None]) -> None:
         self.exhaust(opt_generator)
 
     def head(
@@ -91,11 +74,7 @@ class AuthHttpClient:
         raw: bool = False,
     ):
         headers = headers or {}
-        headers = (
-            headers
-            if raw
-            else self.aws_auth.headers(HEAD, url, headers=headers)
-        )
+        headers = headers if raw else self.aws_auth.headers(HEAD, url, headers=headers)
         return self.session.head(url.encode(), headers=headers)
 
     def get(
@@ -105,11 +84,7 @@ class AuthHttpClient:
         raw: bool = False,
     ):
         headers = headers or {}
-        headers = (
-            headers
-            if raw
-            else self.aws_auth.headers(GET, url, headers=headers)
-        )
+        headers = headers if raw else self.aws_auth.headers(GET, url, headers=headers)
         return self.session.get(url.encode(), headers=headers)
 
     @overload
@@ -149,12 +124,8 @@ class AuthHttpClient:
                 raise InvalidParam(
                     "data", data, "Requests using data as mapping must be raw"
                 )
-            headers = self.aws_auth.headers(
-                POST, url, headers=headers, data=data
-            )
-        return self.session.post(
-            url.encode(), data=data, headers=headers, files=files
-        )
+            headers = self.aws_auth.headers(POST, url, headers=headers, data=data)
+        return self.session.post(url.encode(), data=data, headers=headers, files=files)
 
     def put(
         self,
@@ -170,12 +141,8 @@ class AuthHttpClient:
                 raise InvalidParam(
                     "data", data, "Requests using data as mapping must be raw"
                 )
-            headers = self.aws_auth.headers(
-                PUT, url, headers=headers, data=data
-            )
-        return self.session.put(
-            url.encode(), data=data, headers=headers, files=files
-        )
+            headers = self.aws_auth.headers(PUT, url, headers=headers, data=data)
+        return self.session.put(url.encode(), data=data, headers=headers, files=files)
 
     _methods = {
         GET: get,

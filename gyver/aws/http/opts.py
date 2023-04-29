@@ -1,18 +1,11 @@
-from typing import (
-    Any,
-    Callable,
-    Generator,
-    Generic,
-    Mapping,
-    Optional,
-    TypeVar,
-    Union,
-)
+from typing import (Any, Callable, Generator, Generic, Mapping, Optional,
+                    TypeVar, Union)
 
 from gyver.attrs import define
+from gyver.url import URL
+
 from gyver.aws.http.response import ResponseProxy
 from gyver.aws.typedef import Methods
-from gyver.url import URL
 
 T = TypeVar("T")
 
@@ -35,7 +28,7 @@ class Opts(Generic[T]):
         }
         if self.files is not None:
             dictself["files"] = self.files
-        if self.data is not None:
+        if self.data:
             dictself["data"] = self.data
         return dictself
 
