@@ -1,16 +1,32 @@
-from typing import (Any, AsyncGenerator, Coroutine, Generator, Generic,
-                    Optional, Sequence, TypeVar, overload)
+from typing import (
+    Any,
+    AsyncGenerator,
+    Coroutine,
+    Generator,
+    Generic,
+    Optional,
+    Sequence,
+    TypeVar,
+    overload,
+)
 
 from gyver.attrs import define, info
-from gyver.url import URL
-from gyver.utils import lazyfield
-
 from gyver.aws.constants import constants
 from gyver.aws.http import AsyncAuthHttpClient, AuthHttpClient
 from gyver.aws.s3.config import S3ObjectConfig
-from gyver.aws.s3.handlers import (Copy, CopyParams, DeleteMany, Get, List,
-                                   ObjectTuple, S3Core, Upload)
+from gyver.aws.s3.handlers import (
+    Copy,
+    CopyParams,
+    DeleteMany,
+    Get,
+    List,
+    ObjectTuple,
+    S3Core,
+    Upload,
+)
 from gyver.aws.s3.models import FileInfo
+from gyver.url import URL
+from gyver.utils import lazyfield
 
 HttpInterface = TypeVar("HttpInterface", AsyncAuthHttpClient, AuthHttpClient)
 
@@ -47,16 +63,14 @@ class S3Executor(Generic[HttpInterface]):
         self: "S3Executor[AsyncAuthHttpClient]",
         object_name: str,
         version: Optional[str] = None,
-    ) -> Coroutine[Any, Any, bytes]:
-        ...
+    ) -> Coroutine[Any, Any, bytes]: ...
 
     @overload
     def download(
         self: "S3Executor[AuthHttpClient]",
         object_name: str,
         version: Optional[str] = None,
-    ) -> bytes:
-        ...
+    ) -> bytes: ...
 
     def download(self, object_name: str, version: Optional[str] = None):
         """Download an S3 object.
@@ -74,16 +88,14 @@ class S3Executor(Generic[HttpInterface]):
         self: "S3Executor[AsyncAuthHttpClient]",
         object_name: str,
         version: Optional[str] = None,
-    ) -> Coroutine[Any, Any, FileInfo]:
-        ...
+    ) -> Coroutine[Any, Any, FileInfo]: ...
 
     @overload
     def info(
         self: "S3Executor[AuthHttpClient]",
         object_name: str,
         version: Optional[str] = None,
-    ) -> FileInfo:
-        ...
+    ) -> FileInfo: ...
 
     def info(
         self,
@@ -106,16 +118,14 @@ class S3Executor(Generic[HttpInterface]):
         self: "S3Executor[AsyncAuthHttpClient]",
         object_name: str,
         version: Optional[str] = None,
-    ) -> Coroutine[Any, Any, None]:
-        ...
+    ) -> Coroutine[Any, Any, None]: ...
 
     @overload
     def delete(
         self: "S3Executor[AuthHttpClient]",
         object_name: str,
         version: Optional[str] = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def delete(
         self,
@@ -138,15 +148,13 @@ class S3Executor(Generic[HttpInterface]):
     def delete_many(
         self: "S3Executor[AsyncAuthHttpClient]",
         objects: Sequence[ObjectTuple],
-    ) -> Coroutine[Any, Any, None]:
-        ...
+    ) -> Coroutine[Any, Any, None]: ...
 
     @overload
     def delete_many(
         self: "S3Executor[AuthHttpClient]",
         objects: Sequence[ObjectTuple],
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def delete_many(
         self,
@@ -171,8 +179,7 @@ class S3Executor(Generic[HttpInterface]):
         *,
         content_type: Optional[str] = None,
         request_timeout_seconds: int = 30 * 60,
-    ) -> Coroutine[Any, Any, None]:
-        ...
+    ) -> Coroutine[Any, Any, None]: ...
 
     @overload
     def upload(
@@ -182,8 +189,7 @@ class S3Executor(Generic[HttpInterface]):
         *,
         content_type: Optional[str] = None,
         request_timeout_seconds: int = 30 * 60,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def upload(
         self,
@@ -220,8 +226,7 @@ class S3Executor(Generic[HttpInterface]):
         target: CopyParams,
         *,
         prevalidate: bool = True,
-    ) -> Coroutine[Any, Any, None]:
-        ...
+    ) -> Coroutine[Any, Any, None]: ...
 
     @overload
     def copy(
@@ -230,8 +235,7 @@ class S3Executor(Generic[HttpInterface]):
         target: CopyParams,
         *,
         prevalidate: bool = True,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def copy(
         self,
@@ -259,8 +263,7 @@ class S3Executor(Generic[HttpInterface]):
         target_name: Optional[str] = None,
         *,
         prevalidate: bool = True,
-    ) -> Coroutine[Any, Any, None]:
-        ...
+    ) -> Coroutine[Any, Any, None]: ...
 
     @overload
     def copy_from(
@@ -269,8 +272,7 @@ class S3Executor(Generic[HttpInterface]):
         target_name: Optional[str] = None,
         *,
         prevalidate: bool = True,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def copy_from(
         self,
@@ -300,8 +302,7 @@ class S3Executor(Generic[HttpInterface]):
         source_name: Optional[str] = None,
         *,
         prevalidate: bool = True,
-    ) -> Coroutine[Any, Any, None]:
-        ...
+    ) -> Coroutine[Any, Any, None]: ...
 
     @overload
     def copy_to(
@@ -310,8 +311,7 @@ class S3Executor(Generic[HttpInterface]):
         source_name: Optional[str] = None,
         *,
         prevalidate: bool = True,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def copy_to(
         self,
@@ -339,16 +339,14 @@ class S3Executor(Generic[HttpInterface]):
         self: "S3Executor[AsyncAuthHttpClient]",
         prefix: Optional[str] = None,
         chunksize: int = constants.max_chunksize,
-    ) -> AsyncGenerator[list[FileInfo], None]:
-        ...
+    ) -> AsyncGenerator[list[FileInfo], None]: ...
 
     @overload
     def list_objects(
         self: "S3Executor[AuthHttpClient]",
         prefix: Optional[str] = None,
         chunksize: int = constants.max_chunksize,
-    ) -> Generator[list[FileInfo], None, None]:
-        ...
+    ) -> Generator[list[FileInfo], None, None]: ...
 
     def list_objects(
         self,

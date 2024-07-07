@@ -13,17 +13,17 @@ from typing import (
 )
 
 import aiohttp
-from gyver.attrs import define
-from gyver.context import AsyncAdapter
-from gyver.url import URL
-from gyver.utils import lazyfield
 
+from gyver.attrs import define
 from gyver.aws.auth import AwsAuthV4
 from gyver.aws.credentials import Credentials
 from gyver.aws.exc import InvalidParam
 from gyver.aws.http.opts import Opts
 from gyver.aws.http.response import ResponseProxy
 from gyver.aws.typedef import GET, HEAD, POST, PUT, Services
+from gyver.context import AsyncAdapter
+from gyver.url import URL
+from gyver.utils import lazyfield
 
 T = TypeVar("T")
 
@@ -37,9 +37,7 @@ class AsyncAuthHttpClient:
 
     @lazyfield
     def aws_auth(self):
-        return AwsAuthV4(
-            self.credentials, self.service, self.use_default_headers
-        )
+        return AwsAuthV4(self.credentials, self.service, self.use_default_headers)
 
     @lazyfield
     def session(self) -> aiohttp.ClientSession:
@@ -96,11 +94,7 @@ class AsyncAuthHttpClient:
         raw: bool = False,
     ):
         headers = headers or {}
-        headers = (
-            headers
-            if raw
-            else self.aws_auth.headers(HEAD, url, headers=headers)
-        )
+        headers = headers if raw else self.aws_auth.headers(HEAD, url, headers=headers)
         return await self.session.head(url.encode(), headers=headers)
 
     async def get(
@@ -110,11 +104,7 @@ class AsyncAuthHttpClient:
         raw: bool = False,
     ):
         headers = headers or {}
-        headers = (
-            headers
-            if raw
-            else self.aws_auth.headers(GET, url, headers=headers)
-        )
+        headers = headers if raw else self.aws_auth.headers(GET, url, headers=headers)
         return await self.session.get(url.encode(), headers=headers)
 
     @overload
@@ -125,8 +115,7 @@ class AsyncAuthHttpClient:
         headers: Optional[Mapping[str, str]] = None,
         files: Optional[Mapping[str, bytes]] = None,
         raw: bool = False,
-    ) -> aiohttp.ClientResponse:
-        ...
+    ) -> aiohttp.ClientResponse: ...
 
     @overload
     async def post(
@@ -137,8 +126,7 @@ class AsyncAuthHttpClient:
         files: Optional[Mapping[str, bytes]] = None,
         *,
         raw: Literal[True],
-    ) -> aiohttp.ClientResponse:
-        ...
+    ) -> aiohttp.ClientResponse: ...
 
     async def post(
         self,
@@ -154,9 +142,7 @@ class AsyncAuthHttpClient:
                 raise InvalidParam(
                     "data", data, "Requests using data as mapping must be raw"
                 )
-            headers = self.aws_auth.headers(
-                POST, url, headers=headers, data=data
-            )
+            headers = self.aws_auth.headers(POST, url, headers=headers, data=data)
         if files:
             if isinstance(data, bytes):
                 raise InvalidParam(
@@ -165,9 +151,7 @@ class AsyncAuthHttpClient:
                     "Requests using files must have mapping as files",
                 )
             data = {**data, **files}
-        return await self.session.post(
-            url.encode(), data=data, headers=headers
-        )
+        return await self.session.post(url.encode(), data=data, headers=headers)
 
     async def put(
         self,
@@ -183,9 +167,7 @@ class AsyncAuthHttpClient:
                 raise InvalidParam(
                     "data", data, "Requests using data as mapping must be raw"
                 )
-            headers = self.aws_auth.headers(
-                PUT, url, headers=headers, data=data
-            )
+            headers = self.aws_auth.headers(PUT, url, headers=headers, data=data)
         if files:
             if isinstance(data, bytes):
                 raise InvalidParam(

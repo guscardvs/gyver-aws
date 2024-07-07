@@ -1,19 +1,18 @@
 from http import HTTPStatus
-from typing import (Any, Generator, Literal, Mapping, Optional, TypeVar,
-                    Union, overload)
+from typing import Any, Generator, Literal, Mapping, Optional, TypeVar, Union, overload
 
 import requests
-from gyver.attrs import define
-from gyver.context import Adapter
-from gyver.url import URL
-from gyver.utils import lazyfield
 
+from gyver.attrs import define
 from gyver.aws.auth import AwsAuthV4
 from gyver.aws.credentials import Credentials
 from gyver.aws.exc import InvalidParam
 from gyver.aws.http.opts import Opts
 from gyver.aws.http.response import ResponseProxy
 from gyver.aws.typedef import GET, HEAD, POST, PUT, Services
+from gyver.context import Adapter
+from gyver.url import URL
+from gyver.utils import lazyfield
 
 T = TypeVar("T")
 
@@ -95,8 +94,7 @@ class AuthHttpClient:
         headers: Optional[Mapping[str, str]] = None,
         files: Optional[Mapping[str, bytes]] = None,
         raw: bool = False,
-    ) -> requests.Response:
-        ...
+    ) -> requests.Response: ...
 
     @overload
     def post(
@@ -107,8 +105,7 @@ class AuthHttpClient:
         files: Optional[Mapping[str, bytes]] = None,
         *,
         raw: Literal[True],
-    ) -> requests.Response:
-        ...
+    ) -> requests.Response: ...
 
     def post(
         self,

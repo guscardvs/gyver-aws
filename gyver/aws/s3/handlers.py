@@ -8,9 +8,6 @@ from typing import Generator, NamedTuple, Optional, Sequence, cast
 from xml.etree import ElementTree as ET
 
 from gyver.attrs import define
-from gyver.url import URL, Path
-from gyver.utils import json, lazyfield
-
 from gyver.aws.auth import AwsAuthV4, amz_dateformat
 from gyver.aws.constants import constants
 from gyver.aws.credentials import Credentials
@@ -25,6 +22,8 @@ from gyver.aws.http.response import ResponseProxy
 from gyver.aws.s3.config import S3ObjectConfig
 from gyver.aws.s3.models import FileInfo, UploadParams
 from gyver.aws.typedef import GET, HEAD, POST, PUT, Methods, Services
+from gyver.url import URL, Path
+from gyver.utils import json, lazyfield
 
 HOST_TEMPLATE = "{scheme}://{bucket}.s3.{region}.{host}"
 
@@ -111,9 +110,7 @@ class Get:
                 ),
                 "size": proxy.headers["Content-Length"],
                 "e_tag": proxy.headers["ETag"].strip("\"'"),
-                "storage_class": proxy.headers.get(
-                    "x-amz-storage-class", "UNKNOWN"
-                ),
+                "storage_class": proxy.headers.get("x-amz-storage-class", "UNKNOWN"),
             }
         )
 
@@ -132,9 +129,7 @@ class Get:
         url = self.new_url().add(
             {
                 "X-Amz-Algorithm": constants.aws_algorithm,
-                "X-Amz-Credential": self.core.aws_auth.make_credential(
-                    timestamp
-                ),
+                "X-Amz-Credential": self.core.aws_auth.make_credential(timestamp),
                 "X-Amz-Date": amz_dateformat(timestamp),
                 "X-Amz-Expires": str(expires),
                 "X-Amz-SignedHeaders": "host",
@@ -181,9 +176,7 @@ class DeleteMany:
                 ET.SubElement(object_el, "VersionId").text = item.version
         et = ET.ElementTree(root)
         stream = io.BytesIO()
-        et.write(
-            stream, encoding=constants.default_encoding, xml_declaration=True
-        )
+        et.write(stream, encoding=constants.default_encoding, xml_declaration=True)
         return stream.getvalue()
 
 
@@ -275,11 +268,7 @@ class Upload:
 
     def _upload_additional_conditions(self, timestamp: datetime):
         return [
-            {
-                "x-amz-credential": self.core.aws_auth.make_credential(
-                    timestamp
-                )
-            },
+            {"x-amz-credential": self.core.aws_auth.make_credential(timestamp)},
             {"x-amz-algorithm": constants.aws_algorithm},
             {"x-amz-date": amz_dateformat(timestamp)},
         ]
@@ -289,9 +278,7 @@ class Upload:
             "x-amz-algorithm": constants.aws_algorithm,
             "x-amz-credential": self.core.aws_auth.make_credential(timestamp),
             "x-amz-date": amz_dateformat(timestamp),
-            "x-amz-signature": self.core.aws_auth.aws4_sign_string(
-                policy, timestamp
-            ),
+            "x-amz-signature": self.core.aws_auth.aws4_sign_string(policy, timestamp),
         }
 
 
@@ -388,22 +375,16 @@ class List:
         def _fetch_handler(response_proxy: ResponseProxy) -> list[FileInfo]:
             response_failed_handler(response_proxy)
             nonlocal token_holder
-            xml_content = ET.fromstring(
-                xmlns_re.sub(b"", response_proxy.content)
-            )
+            xml_content = ET.fromstring(xmlns_re.sub(b"", response_proxy.content))
             results = []
             for contents in xml_content.findall("Contents"):
                 results.append(
-                    FileInfo.parse_obj(
-                        {items.tag: items.text for items in contents}
-                    )
+                    FileInfo.parse_obj({items.tag: items.text for items in contents})
                 )
             if self._list_is_exhausted(xml_content):
                 token_holder.should_break = True
             else:
-                if (
-                    t := xml_content.find("NextContinuationToken")
-                ) is not None:
+                if (t := xml_content.find("NextContinuationToken")) is not None:
                     token_holder.continuation_token = t.text
                 else:
                     raise UnexpectedResponse("unexpected response from S3")
@@ -425,6 +406,4 @@ class List:
         return url
 
     def _list_is_exhausted(self, xml_content: ET.Element):
-        return (
-            t := xml_content.find("IsTruncated")
-        ) is not None and t.text == "false"
+        return (t := xml_content.find("IsTruncated")) is not None and t.text == "false"
